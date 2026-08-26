@@ -1,9 +1,14 @@
-# Netlify configuration for AquaVision AI Next.js frontend
+# Netlify configuration for AquaVision AI Static SPA Export
 
 [build]
   base = "apps/web"
   command = "npm run build"
-  publish = ".next"
+  publish = "out"
 
 [build.environment]
   NODE_VERSION = "20"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
