@@ -1,0 +1,27 @@
+services:
+  # FastAPI Backend API Service
+  - type: web
+    name: aquavision-api
+    env: python
+    buildCommand: "pip install -r services/api/requirements.txt"
+    startCommand: "python3 -m uvicorn services.api.main:app --host 0.0.0.0 --port $PORT"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.0
+      - key: CORS_ORIGINS
+        value: '["*"]'
+
+  # Next.js Frontend Web Service
+  - type: web
+    name: aquavision-web
+    env: node
+    buildCommand: "cd apps/web && npm install && npm run build"
+    startCommand: "cd apps/web && npm start"
+    envVars:
+      - key: NODE_VERSION
+        value: 20.0.0
+      - key: NEXT_PUBLIC_API_URL
+        fromService:
+          type: web
+          name: aquavision-api
+          property: host
