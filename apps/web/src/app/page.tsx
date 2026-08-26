@@ -2,21 +2,13 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/lib/auth-context";
 
 export default function RootPage() {
-  const { user, loading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (!loading) {
-      if (user) {
-        router.push("/dashboard");
-      } else {
-        router.push("/login");
-      }
-    }
-  }, [user, loading, router]);
+    router.replace("/login");
+  }, [router]);
 
   return (
     <div className="flex h-screen w-screen items-center justify-center bg-slate-950">
