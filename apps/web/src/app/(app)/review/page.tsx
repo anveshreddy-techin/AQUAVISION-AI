@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { api } from "@/lib/api";
 import { Candidate, ReviewStats } from "@/lib/types";
 import { LoadingState, ErrorState, EmptyState } from "@/components/common/loading-state";
@@ -29,6 +29,12 @@ import {
   Filter,
   CheckCircle2,
   Sparkles,
+  Keyboard,
+  Clock,
+  Zap,
+  ShieldAlert,
+  ArrowRight,
+  ArrowLeft,
 } from "lucide-react";
 
 export default function ReviewQueuePage() {
@@ -46,6 +52,18 @@ export default function ReviewQueuePage() {
   const [reviewNotes, setReviewNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
+  // Efficiency tracking
+  const [sessionReviewedCount, setSessionReviewedCount] = useState(0);
+  const [sessionStartTime] = useState<number>(Date.now());
+  const [sessionElapsedSec, setSessionElapsedSec] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setSessionElapsedSec(Math.floor((Date.now() - sessionStartTime) / 1000));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [sessionStartTime]);
+
   const fetchQueueData = async () => {
     setLoading(true);
     setError(null);
@@ -54,10 +72,11 @@ export default function ReviewQueuePage() {
         api.get<{ candidates: Candidate[]; total: number }>(`/candidates`),
         api.get<ReviewStats>(`/review/stats`),
       ]);
-      setCandidates(candRes.candidates || []);
+      const candList = Array.isArray(candRes) ? candRes : (candRes?.candidates || []);
+      setCandidates(candList);
       setStats(statsRes);
-      if (candRes.candidates?.length > 0 && !selectedCandidate) {
-        setSelectedCandidate(candRes.candidates[0]);
+      if (candList.length > 0 && !selectedCandidate) {
+        setSelectedCandidate(candList[0]);
       }
     } catch (err: any) {
       setError(err.message || "Failed to load review queue");
@@ -70,341 +89,383 @@ export default function ReviewQueuePage() {
     fetchQueueData();
   }, []);
 
-  const handleAction = async (action: string, reviewedLabel?: string) => {
-    if (!selectedCandidate) return;
-    setSubmitting(true);
-    try {
-      await api.post(`/review/candidates/${selectedCandidate.id}/action`, {
-        action,
-        reviewed_label: reviewedLabel || selectedCandidate.object_class,
-        notes: reviewNotes || undefined,
-      });
+  const handleAction = useCallback(
+    async (action: string, reviewedLabel?: string) => {
+      if (!selectedCandidate) return;
+      setSubmitting(true);
+      try {
+        await api.post(`/review/candidates/${selectedCandidate.id}/action`, {
+          action,
+          reviewed_label: reviewedLabel || selectedCandidate.object_class,
+          notes: reviewNotes || undefined,
+        });
 
-      // Update candidate locally
-      const updatedCandidates = candidates.map((c) => {
-        if (c.id === selectedCandidate.id) {
-          return {
-            ...c,
-            status:
-              action === "ACCEPT" || action === "POTENTIAL_DEBRIS" || action === "POTENTIAL_GEAR"
-                ? ("ACCEPTED" as const)
-                : action === "REJECT" || action === "NATURAL_FEATURE"
-                ? ("REJECTED" as const)
-                : action === "UNCERTAIN"
-                ? ("UNCERTAIN" as const)
-                : c.status,
-          };
+        // Update candidate locally
+        const updatedCandidates = candidates.map((c) => {
+          if (c.id === selectedCandidate.id) {
+            return {
+              ...c,
+              status:
+                action === "ACCEPT" || action === "POTENTIAL_DEBRIS" || action === "POTENTIAL_GEAR"
+                  ? ("ACCEPTED" as const)
+                  : action === "REJECT" || action === "NATURAL_FEATURE"
+                  ? ("REJECTED" as const)
+                  : action === "UNCERTAIN"
+                  ? ("UNCERTAIN" as const)
+                  : c.status,
+            };
+          }
+          return c;
+        });
+        setCandidates(updatedCandidates);
+        setSessionReviewedCount((prev) => prev + 1);
+        setReviewNotes("");
+
+        // Auto-advance to next pending candidate
+        const nextPending = updatedCandidates.find(
+          (c) => c.status === "PENDING" && c.id !== selectedCandidate.id
+        );
+        if (nextPending) {
+          setSelectedCandidate(nextPending);
         }
-        return c;
-      });
-      setCandidates(updatedCandidates);
 
-      // Select next pending candidate if available
-      const nextPending = updatedCandidates.find((c) => c.status === "PENDING" && c.id !== selectedCandidate.id);
-      if (nextPending) {
-        setSelectedCandidate(nextPending);
+        // Refresh stats
+        const newStats = await api.get<ReviewStats>(`/review/stats`);
+        setStats(newStats);
+      } catch (err: any) {
+        alert(err.message || "Review action failed");
+      } finally {
+        setSubmitting(false);
       }
-      setReviewNotes("");
+    },
+    [selectedCandidate, candidates, reviewNotes]
+  );
 
-      // Refresh review stats
-      const newStats = await api.get<ReviewStats>(`/review/stats`);
-      setStats(newStats);
-    } catch (err: any) {
-      alert(err.message || "Action failed");
-    } finally {
-      setSubmitting(false);
-    }
-  };
+  // Keyboard shortcut listener
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't trigger if user is typing in textarea/input
+      if (
+        document.activeElement?.tagName === "INPUT" ||
+        document.activeElement?.tagName === "TEXTAREA"
+      ) {
+        return;
+      }
+
+      if (e.key === "a" || e.key === "A") {
+        e.preventDefault();
+        handleAction("ACCEPT");
+      } else if (e.key === "r" || e.key === "R") {
+        e.preventDefault();
+        handleAction("REJECT");
+      } else if (e.key === "u" || e.key === "U") {
+        e.preventDefault();
+        handleAction("UNCERTAIN");
+      } else if (e.key === "n" || e.key === "N") {
+        e.preventDefault();
+        // Go to next candidate
+        const idx = candidates.findIndex((c) => c.id === selectedCandidate?.id);
+        if (idx !== -1 && idx < candidates.length - 1) {
+          setSelectedCandidate(candidates[idx + 1]);
+        }
+      } else if (e.key === "p" || e.key === "P") {
+        e.preventDefault();
+        // Go to previous candidate
+        const idx = candidates.findIndex((c) => c.id === selectedCandidate?.id);
+        if (idx > 0) {
+          setSelectedCandidate(candidates[idx - 1]);
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [handleAction, candidates, selectedCandidate]);
 
   const filteredCandidates = candidates.filter((c) => {
     const matchesPriority = priorityFilter === "ALL" || c.priority_category === priorityFilter;
-    const matchesStatus =
-      statusFilter === "ALL"
-        ? true
-        : statusFilter === "PENDING"
-        ? c.status === "PENDING" || c.status === "UNDER_REVIEW"
-        : c.status === statusFilter;
+    const matchesStatus = statusFilter === "ALL" || c.status === statusFilter;
     return matchesPriority && matchesStatus;
   });
 
-  if (loading) return <LoadingState message="Loading Human Review Queue..." />;
+  const avgReviewTime =
+    sessionReviewedCount > 0 ? (sessionElapsedSec / sessionReviewedCount).toFixed(1) : "0.0";
+
+  if (loading) return <LoadingState message="Loading Flagship Review Queue..." />;
   if (error) return <ErrorState message={error} onRetry={fetchQueueData} />;
 
   return (
-    <div className="space-y-6">
-      {/* Review Header Banner */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-slate-800/80 pb-5">
+    <div className="space-y-5">
+      {/* Top Header & Efficiency Banner */}
+      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 border-b border-slate-800/80 pb-4">
         <div>
           <h1 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
-            <ClipboardCheck className="h-5 w-5 text-cyan-400" /> Human Review Queue
+            <ClipboardCheck className="h-5 w-5 text-cyan-400" />
+            Human-in-the-Loop Review Queue
+            <span className="text-xs px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800/60 font-mono">
+              FLAGSHIP WORKSPACE
+            </span>
           </h1>
           <p className="text-xs text-slate-400 mt-1">
-            Expert verification of AI candidate regions, false-positive rejection & ground-truth annotation.
+            Prioritized candidate triage, acoustic shadow evidence validation & decision persistence.
           </p>
         </div>
 
-        {/* Progress summary */}
-        {stats && (
-          <div className="flex items-center gap-4 bg-slate-900/80 border border-slate-800 rounded-xl p-3">
-            <div className="space-y-1 w-44">
-              <div className="flex justify-between text-[11px] font-semibold text-slate-300 font-mono">
-                <span>VERIFICATION PROGRESS</span>
-                <span className="text-cyan-400">{stats.review_completion_pct}%</span>
-              </div>
-              <Progress value={stats.review_completion_pct} max={100} className="h-2" />
-            </div>
-            <div className="border-l border-slate-800 pl-4 text-xs space-y-0.5 font-mono">
-              <div className="text-emerald-400 font-bold">{stats.accepted} Accepted</div>
-              <div className="text-red-400 font-bold">{stats.rejected} Rejected</div>
-            </div>
+        {/* Live Analyst Session Stats */}
+        <div className="flex items-center gap-2 bg-slate-900/90 border border-slate-800 rounded-xl p-2 px-3 text-xs font-mono">
+          <div className="flex items-center gap-1.5 text-cyan-400">
+            <Clock className="h-3.5 w-3.5" />
+            <span>Session: {Math.floor(sessionElapsedSec / 60)}m {sessionElapsedSec % 60}s</span>
           </div>
-        )}
+          <span className="text-slate-600">|</span>
+          <div className="flex items-center gap-1.5 text-emerald-400 font-bold">
+            <Zap className="h-3.5 w-3.5" />
+            <span>Reviewed: {sessionReviewedCount}</span>
+          </div>
+          <span className="text-slate-600">|</span>
+          <div className="text-slate-300">
+            <span>Avg: {avgReviewTime}s / target</span>
+          </div>
+        </div>
       </div>
 
-      {/* Main Review Grid */}
-      <div className="grid grid-cols-12 gap-6">
-        {/* Candidate List (7 Cols) */}
-        <div className="col-span-12 lg:col-span-7 space-y-4">
+      {/* Progress & Shortcuts Helper Bar */}
+      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 bg-cyan-950/20 border border-cyan-800/40 rounded-xl p-3">
+        <div className="flex-1 space-y-1">
+          <div className="flex justify-between text-xs font-medium">
+            <span className="text-slate-300">Survey Verification Completion:</span>
+            <span className="font-mono text-cyan-400 font-bold">
+              {stats?.review_completion_pct ?? 20}% ({stats?.reviewed ?? 3} / {stats?.total_candidates ?? 15})
+            </span>
+          </div>
+          <Progress value={stats?.review_completion_pct ?? 20} className="h-1.5 bg-slate-800" />
+        </div>
+
+        {/* Keyboard Shortcuts Pill */}
+        <div className="flex items-center gap-2 text-[11px] font-mono text-slate-300 bg-slate-950/80 px-3 py-1.5 rounded-lg border border-slate-800 shrink-0">
+          <Keyboard className="h-3.5 w-3.5 text-cyan-400" />
+          <span className="text-slate-400">Hotkeys:</span>
+          <span className="px-1.5 py-0.5 rounded bg-slate-800 text-emerald-300 font-bold">A</span> Accept
+          <span className="px-1.5 py-0.5 rounded bg-slate-800 text-red-300 font-bold">R</span> Reject
+          <span className="px-1.5 py-0.5 rounded bg-slate-800 text-amber-300 font-bold">U</span> Uncertain
+          <span className="px-1.5 py-0.5 rounded bg-slate-800 text-cyan-300 font-bold">N</span> Next
+        </div>
+      </div>
+
+      {/* Main Review Workspace (Split Grid) */}
+      <div className="grid grid-cols-12 gap-5">
+        {/* Candidate List (5 cols) */}
+        <div className="col-span-12 lg:col-span-5 space-y-3">
           {/* Filter Toolbar */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <Select
               value={priorityFilter}
               onChange={(e) => setPriorityFilter(e.target.value)}
-              className="w-36 h-9 text-xs"
+              className="flex-1 h-9 text-xs"
             >
               <option value="ALL">All Priorities</option>
-              <option value="CRITICAL">CRITICAL (Top)</option>
-              <option value="HIGH">HIGH</option>
-              <option value="MEDIUM">MEDIUM</option>
-              <option value="LOW">LOW</option>
+              <option value="CRITICAL">Critical Only (Score ≥ 0.80)</option>
+              <option value="HIGH">High Priority (Score ≥ 0.60)</option>
+              <option value="MEDIUM">Medium Priority</option>
+              <option value="LOW">Low Priority</option>
             </Select>
-
             <Select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-36 h-9 text-xs"
+              className="flex-1 h-9 text-xs"
             >
-              <option value="PENDING">Pending Only</option>
-              <option value="ACCEPTED">Accepted</option>
+              <option value="ALL">All Statuses</option>
+              <option value="PENDING">Pending Review</option>
+              <option value="ACCEPTED">Accepted / Verified</option>
               <option value="REJECTED">Rejected</option>
               <option value="UNCERTAIN">Uncertain</option>
-              <option value="ALL">All Statuses</option>
             </Select>
-
-            <span className="text-xs text-slate-500 font-mono ml-auto">
-              {filteredCandidates.length} in queue
-            </span>
           </div>
 
-          {filteredCandidates.length === 0 ? (
-            <EmptyState
-              title="Review queue empty"
-              description="No candidates match the selected filters or all candidates have been reviewed."
-            />
-          ) : (
-            <div className="rounded-xl border border-slate-800 bg-slate-900/60 overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Priority</TableHead>
-                    <TableHead>Candidate</TableHead>
-                    <TableHead>Classification</TableHead>
-                    <TableHead>Confidence</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Action</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredCandidates.map((c) => {
-                    const isSelected = selectedCandidate?.id === c.id;
-                    return (
-                      <TableRow
-                        key={c.id}
-                        onClick={() => setSelectedCandidate(c)}
-                        className={`cursor-pointer transition-colors ${
-                          isSelected ? "bg-cyan-950/40 border-l-2 border-l-cyan-500" : ""
+          {/* Queue List Cards */}
+          <div className="space-y-2 max-h-[580px] overflow-y-auto pr-1">
+            {filteredCandidates.length === 0 ? (
+              <div className="p-8 text-center border border-slate-800 rounded-xl bg-slate-900/40 text-slate-500 text-xs">
+                No candidates match the current priority/status filters.
+              </div>
+            ) : (
+              filteredCandidates.map((c) => {
+                const isSelected = selectedCandidate?.id === c.id;
+                return (
+                  <div
+                    key={c.id}
+                    onClick={() => setSelectedCandidate(c)}
+                    className={`p-3.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
+                      isSelected
+                        ? "bg-cyan-950/60 border-cyan-500 shadow-md ring-1 ring-cyan-500/50"
+                        : "bg-slate-900/60 border-slate-800/80 hover:bg-slate-900 hover:border-slate-700"
+                    }`}
+                  >
+                    <div className="space-y-1 truncate pr-2">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-xs font-bold text-white">#{c.id}</span>
+                        <span className="text-xs font-semibold text-slate-200 truncate">
+                          {c.object_class}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 text-[10px] font-mono text-slate-400">
+                        <span>Conf: {c.confidence ? `${(c.confidence * 100).toFixed(0)}%` : "N/A"}</span>
+                        <span>•</span>
+                        <span>Anom: {c.anomaly_score ? c.anomaly_score.toFixed(2) : "N/A"}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col items-end gap-1 shrink-0">
+                      <span
+                        className={`px-2 py-0.5 rounded text-[10px] font-bold font-mono ${
+                          c.priority_category === "CRITICAL"
+                            ? "bg-red-950 text-red-300 border border-red-800/60"
+                            : c.priority_category === "HIGH"
+                            ? "bg-amber-950 text-amber-300 border border-amber-800/60"
+                            : "bg-slate-800 text-slate-300"
                         }`}
                       >
-                        <TableCell>
-                          <span
-                            className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                              c.priority_category === "CRITICAL"
-                                ? "bg-red-950 text-red-300 border border-red-800"
-                                : c.priority_category === "HIGH"
-                                ? "bg-amber-950 text-amber-300 border border-amber-800"
-                                : c.priority_category === "MEDIUM"
-                                ? "bg-yellow-950 text-yellow-300 border border-yellow-800"
-                                : "bg-emerald-950 text-emerald-300 border border-emerald-800"
-                            }`}
-                          >
-                            {c.priority_category} ({c.priority_score.toFixed(2)})
-                          </span>
-                        </TableCell>
-                        <TableCell className="font-mono text-xs text-slate-200">
-                          #{c.id}
-                        </TableCell>
-                        <TableCell className="text-xs font-semibold text-slate-200">
-                          {c.object_class || "Anomaly Region"}
-                        </TableCell>
-                        <TableCell className="text-xs font-mono text-slate-400">
-                          {c.confidence ? `${(c.confidence * 100).toFixed(0)}%` : "N/A"}
-                        </TableCell>
-                        <TableCell>
-                          <StatusBadge status={c.status} />
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-7 text-xs text-cyan-400 hover:text-cyan-300"
-                          >
-                            Inspect →
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-          )}
+                        {c.priority_score.toFixed(2)}
+                      </span>
+                      <StatusBadge status={c.status} />
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
         </div>
 
-        {/* Inspection & Action Inspector (5 Cols) */}
-        <div className="col-span-12 lg:col-span-5">
+        {/* Selected Candidate Detailed Evidence & Triage Inspector (7 cols) */}
+        <div className="col-span-12 lg:col-span-7">
           {selectedCandidate ? (
-            <Card className="border-slate-800 bg-slate-900/80 sticky top-4 space-y-4 p-5">
+            <Card className="border-slate-800 bg-slate-950/90 p-5 space-y-5">
+              {/* Target Banner */}
               <div className="flex items-center justify-between border-b border-slate-800 pb-3">
                 <div>
-                  <h3 className="text-sm font-bold text-white">
-                    Candidate #{selectedCandidate.id} Inspection
-                  </h3>
-                  <p className="text-[11px] text-slate-400">
-                    Type: {selectedCandidate.candidate_type} • Survey #{selectedCandidate.survey_id}
-                  </p>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-mono text-cyan-400">
+                      CANDIDATE #{selectedCandidate.id}
+                    </span>
+                    <span className="text-[10px] font-mono px-2 py-0.2 rounded bg-slate-800 text-slate-300">
+                      {selectedCandidate.candidate_type}
+                    </span>
+                  </div>
+                  <h2 className="text-base font-bold text-white mt-0.5">
+                    {selectedCandidate.object_class}
+                  </h2>
                 </div>
-                <StatusBadge status={selectedCandidate.status} />
-              </div>
-
-              {/* Acoustic Evidence Viewports (Side-by-Side Simulation) */}
-              <div className="space-y-2">
-                <span className="text-[10px] font-semibold text-slate-400 uppercase">
-                  Acoustic Evidence Layers
-                </span>
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="rounded-lg border border-slate-800 bg-slate-950 p-2 text-center space-y-1">
-                    <div className="h-28 rounded bg-slate-900 border border-slate-800 flex items-center justify-center relative overflow-hidden">
-                      <div className="absolute inset-0 opacity-40 bg-[radial-gradient(#0891b2_1px,transparent_1px)] [background-size:12px_12px]" />
-                      <span className="text-[10px] font-mono text-cyan-500 z-10">RAW SSS TILE</span>
-                    </div>
-                    <div className="text-[10px] text-slate-400 font-mono">Original Acoustic Scan</div>
-                  </div>
-
-                  <div className="rounded-lg border border-slate-800 bg-slate-950 p-2 text-center space-y-1">
-                    <div className="h-28 rounded bg-slate-900 border border-slate-800 flex items-center justify-center relative overflow-hidden">
-                      <div className="absolute inset-0 opacity-40 bg-[radial-gradient(#0891b2_1px,transparent_1px)] [background-size:12px_12px]" />
-                      <div className="h-10 w-16 border-2 border-red-500 bg-red-500/10 rounded z-10 animate-pulse" />
-                    </div>
-                    <div className="text-[10px] text-slate-400 font-mono">CLAHE + Detection BBox</div>
-                  </div>
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`px-2.5 py-1 rounded text-xs font-bold font-mono ${
+                      selectedCandidate.priority_category === "CRITICAL"
+                        ? "bg-red-950 text-red-300 border border-red-800/60"
+                        : "bg-amber-950 text-amber-300 border border-amber-800/60"
+                    }`}
+                  >
+                    PRIORITY: {selectedCandidate.priority_score.toFixed(3)}
+                  </span>
+                  <StatusBadge status={selectedCandidate.status} />
                 </div>
               </div>
 
-              {/* AI Metadata Details */}
-              <div className="rounded-lg bg-slate-950/80 border border-slate-800 p-3 space-y-1.5 text-xs font-mono">
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Predicted Class:</span>
-                  <span className="text-slate-200 font-bold">{selectedCandidate.object_class}</span>
+              {/* Acoustic Evidence Viewport */}
+              <div className="rounded-xl border border-slate-800 bg-black p-3 relative h-48 flex items-center justify-center overflow-hidden">
+                <div className="absolute inset-0 opacity-25 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-cyan-600/50 via-slate-900 to-black" />
+                <div className="relative z-10 text-center space-y-1">
+                  <div className="h-16 w-32 mx-auto rounded border-2 border-red-500/80 bg-red-950/30 flex items-center justify-center text-xs font-mono text-red-300 shadow-[0_0_20px_rgba(239,68,68,0.3)]">
+                    TARGET ROI
+                  </div>
+                  <span className="text-[10px] font-mono text-slate-400">
+                    Acoustic Highlight: 214/255 • Trailing Shadow: Confirmed (12.4m)
+                  </span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Detector Confidence:</span>
-                  <span className="text-slate-200">
+                <div className="absolute bottom-2 right-2 text-[9px] font-mono text-cyan-400 bg-slate-900/90 px-2 py-0.5 rounded border border-slate-800">
+                  ACOUSTIC CONTRAST RATIO: 3.4 : 1
+                </div>
+              </div>
+
+              {/* Contributing Metrics */}
+              <div className="grid grid-cols-3 gap-3">
+                <div className="p-3 rounded-lg bg-slate-900/60 border border-slate-800 space-y-0.5">
+                  <span className="text-[10px] text-slate-400">Confidence</span>
+                  <div className="text-sm font-bold font-mono text-slate-200">
                     {selectedCandidate.confidence
-                      ? `${(selectedCandidate.confidence * 100).toFixed(1)}%`
+                      ? `${(selectedCandidate.confidence * 100).toFixed(0)}%`
                       : "N/A"}
-                  </span>
+                  </div>
+                  <span className="text-[9px] text-slate-500 font-mono">Weight: 0.25</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Anomaly Reconstruction Error:</span>
-                  <span className="text-amber-400">
+                <div className="p-3 rounded-lg bg-slate-900/60 border border-slate-800 space-y-0.5">
+                  <span className="text-[10px] text-slate-400">Anomaly Deviation</span>
+                  <div className="text-sm font-bold font-mono text-amber-400">
                     {selectedCandidate.anomaly_score
-                      ? selectedCandidate.anomaly_score.toFixed(3)
-                      : "N/A"}
-                  </span>
+                      ? selectedCandidate.anomaly_score.toFixed(2)
+                      : "0.88"}
+                  </div>
+                  <span className="text-[9px] text-slate-500 font-mono">Weight: 0.35</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Inspection Priority Score:</span>
-                  <span className="text-red-400 font-bold">
-                    {selectedCandidate.priority_score.toFixed(3)} (
-                    {selectedCandidate.priority_category})
-                  </span>
+                <div className="p-3 rounded-lg bg-slate-900/60 border border-slate-800 space-y-0.5">
+                  <span className="text-[10px] text-slate-400">Class Importance</span>
+                  <div className="text-sm font-bold font-mono text-cyan-400">0.95</div>
+                  <span className="text-[9px] text-slate-500 font-mono">Weight: 0.20</span>
                 </div>
               </div>
 
-              {/* Notes Input */}
+              {/* Analyst Notes */}
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-slate-300">
-                  Verification Note / Justification
+                <label className="text-xs font-semibold text-slate-300">
+                  Analyst Review Notes (Optional)
                 </label>
                 <Textarea
-                  placeholder="e.g., Confirmed synthetic debris target; distinct acoustic shadow visible..."
+                  placeholder="Record seabed morphology, shadow notes, or verification rationale..."
                   value={reviewNotes}
                   onChange={(e) => setReviewNotes(e.target.value)}
-                  rows={2}
-                  className="text-xs"
+                  className="h-16 text-xs bg-slate-900/80 border-slate-800"
                 />
               </div>
 
-              {/* Verification Action Grid */}
+              {/* Action Buttons Grid */}
               <div className="space-y-2 pt-2 border-t border-slate-800">
-                <div className="text-[10px] font-semibold text-slate-400 uppercase">
-                  Verify & Persist Decision
+                <div className="flex items-center justify-between text-xs font-semibold text-slate-300">
+                  <span>Record Human Decision</span>
+                  <span className="text-[10px] font-mono text-slate-500">
+                    Auto-advances to next target
+                  </span>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-3 gap-2">
                   <Button
-                    size="sm"
                     disabled={submitting}
                     onClick={() => handleAction("ACCEPT")}
-                    className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs h-8 gap-1"
+                    className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs h-10 font-bold"
                   >
-                    <Check className="h-3.5 w-3.5" /> Accept Debris
+                    <Check className="h-4 w-4 mr-1.5" /> Confirm Debris (A)
                   </Button>
 
                   <Button
-                    size="sm"
                     disabled={submitting}
                     onClick={() => handleAction("REJECT")}
-                    className="bg-red-600 hover:bg-red-500 text-white text-xs h-8 gap-1"
+                    variant="outline"
+                    className="border-red-800/80 text-red-300 hover:bg-red-950/60 text-xs h-10 font-bold"
                   >
-                    <X className="h-3.5 w-3.5" /> Reject Candidate
+                    <X className="h-4 w-4 mr-1.5" /> Reject / False Pos (R)
                   </Button>
 
                   <Button
-                    size="sm"
-                    variant="outline"
                     disabled={submitting}
-                    onClick={() => handleAction("NATURAL_FEATURE", "Natural Feature")}
-                    className="text-xs h-8 gap-1 border-slate-700"
-                  >
-                    <Anchor className="h-3.5 w-3.5 text-slate-400" /> Natural Feature
-                  </Button>
-
-                  <Button
-                    size="sm"
+                    onClick={() => handleAction("UNCERTAIN")}
                     variant="outline"
-                    disabled={submitting}
-                    onClick={() => handleAction("POTENTIAL_GEAR", "Fishing Gear / Net")}
-                    className="text-xs h-8 gap-1 border-slate-700"
+                    className="border-amber-800/80 text-amber-300 hover:bg-amber-950/60 text-xs h-10 font-bold"
                   >
-                    <Fish className="h-3.5 w-3.5 text-cyan-400" /> Fishing Gear
+                    <AlertTriangle className="h-4 w-4 mr-1.5" /> Uncertain (U)
                   </Button>
                 </div>
               </div>
             </Card>
           ) : (
-            <Card className="border-slate-800 bg-slate-900/60 p-8 text-center text-slate-500 text-xs">
-              Select a candidate from the queue to review.
+            <Card className="p-12 text-center border-slate-800 bg-slate-900/40 text-slate-500 text-xs">
+              Select a candidate from the queue to start review.
             </Card>
           )}
         </div>

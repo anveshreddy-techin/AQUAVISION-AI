@@ -191,21 +191,16 @@ def seed():
         # === DEMO CANDIDATES ===
         print("Creating demo candidates...")
         candidate_data = [
-            {"type": "DETECTION", "class": "Potential Debris", "conf": 0.87, "anom": 0.72, "priority": "CRITICAL", "score": 0.85},
-            {"type": "COMBINED", "class": "Potential Net-like Structure", "conf": 0.82, "anom": 0.68, "priority": "CRITICAL", "score": 0.83},
-            {"type": "DETECTION", "class": "Unknown Object", "conf": 0.79, "anom": 0.55, "priority": "HIGH", "score": 0.72},
-            {"type": "ANOMALY", "class": "Unknown Anomaly", "conf": None, "anom": 0.81, "priority": "HIGH", "score": 0.70},
-            {"type": "DETECTION", "class": "Potential Debris", "conf": 0.71, "anom": 0.45, "priority": "HIGH", "score": 0.65},
+            {"type": "COMBINED", "class": "Potential Net-like Anomaly", "conf": 0.82, "anom": 0.88, "priority": "CRITICAL", "score": 0.86},
+            {"type": "DETECTION", "class": "Metallic Container Debris", "conf": 0.89, "anom": 0.74, "priority": "CRITICAL", "score": 0.83},
+            {"type": "COMBINED", "class": "Submerged Pipeline Anomaly", "conf": 0.85, "anom": 0.76, "priority": "HIGH", "score": 0.79},
+            {"type": "ANOMALY", "class": "Plastic / Synthetic Dump", "conf": 0.71, "anom": 0.69, "priority": "HIGH", "score": 0.71},
+            {"type": "DETECTION", "class": "Potential Fishing Gear", "conf": 0.78, "anom": 0.62, "priority": "HIGH", "score": 0.73},
             {"type": "DETECTION", "class": "Unknown Object", "conf": 0.65, "anom": 0.38, "priority": "MEDIUM", "score": 0.55},
             {"type": "ANOMALY", "class": "Unknown Anomaly", "conf": None, "anom": 0.52, "priority": "MEDIUM", "score": 0.50},
-            {"type": "DETECTION", "class": "Natural Feature", "conf": 0.88, "anom": 0.15, "priority": "MEDIUM", "score": 0.45},
+            {"type": "DETECTION", "class": "Natural Rock Outcrop", "conf": 0.88, "anom": 0.15, "priority": "LOW", "score": 0.32},
             {"type": "DETECTION", "class": "Potential Anomaly", "conf": 0.55, "anom": 0.42, "priority": "MEDIUM", "score": 0.48},
-            {"type": "DETECTION", "class": "Unknown Object", "conf": 0.48, "anom": 0.30, "priority": "LOW", "score": 0.38},
-            {"type": "DETECTION", "class": "Natural Feature", "conf": 0.92, "anom": 0.08, "priority": "LOW", "score": 0.30},
-            {"type": "DETECTION", "class": "Unknown Object", "conf": 0.35, "anom": 0.22, "priority": "LOW", "score": 0.28},
-            {"type": "ANOMALY", "class": "Unknown Anomaly", "conf": None, "anom": 0.35, "priority": "LOW", "score": 0.25},
             {"type": "DETECTION", "class": "Natural Feature", "conf": 0.95, "anom": 0.05, "priority": "LOW", "score": 0.20},
-            {"type": "DETECTION", "class": "Unknown Object", "conf": 0.28, "anom": 0.18, "priority": "LOW", "score": 0.18},
         ]
 
         # Demo locations (synthetic coordinates around a bay area)

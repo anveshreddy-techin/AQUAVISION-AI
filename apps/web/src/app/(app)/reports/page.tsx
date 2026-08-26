@@ -8,7 +8,6 @@ import { StatusBadge } from "@/components/common/status-badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
 import {
   Table,
   TableHeader,
@@ -17,7 +16,16 @@ import {
   TableRow,
   TableCell,
 } from "@/components/ui/table";
-import { FileText, Download, Plus, Loader2, CheckCircle2 } from "lucide-react";
+import {
+  FileText,
+  Download,
+  Plus,
+  Loader2,
+  CheckCircle2,
+  ShieldAlert,
+  AlertTriangle,
+  Info,
+} from "lucide-react";
 import { formatDate } from "@/lib/utils";
 
 export default function ReportsPage() {
@@ -40,9 +48,10 @@ export default function ReportsPage() {
         api.get<{ surveys: Survey[]; total: number }>("/surveys"),
       ]);
       setReports(Array.isArray(reportList) ? reportList : []);
-      setSurveys(surveyList.surveys || []);
-      if (surveyList.surveys?.length > 0 && !selectedSurveyId) {
-        setSelectedSurveyId(surveyList.surveys[0].id);
+      const sList = Array.isArray(surveyList) ? surveyList : (surveyList?.surveys || []);
+      setSurveys(sList);
+      if (sList.length > 0 && !selectedSurveyId) {
+        setSelectedSurveyId(sList[0].id);
       }
     } catch (err: any) {
       setError(err.message || "Failed to load reports");
@@ -61,11 +70,17 @@ export default function ReportsPage() {
     try {
       await api.post(`/reports/generate/${selectedSurveyId}`, {
         report_type: reportType,
-        title: `Survey Report #${selectedSurveyId}`,
+        title: `Survey #${selectedSurveyId} — ${
+          reportType === "FULL_REPORT"
+            ? "Full Intelligence Report"
+            : reportType === "SURVEY_SUMMARY"
+            ? "Executive Summary"
+            : "High-Priority Findings"
+        }`,
       });
       // Refresh reports list
       const updated = await api.get<Report[]>("/reports");
-      setReports(updated);
+      setReports(Array.isArray(updated) ? updated : []);
     } catch (err: any) {
       alert(err.message || "Report generation failed");
     } finally {
@@ -78,7 +93,7 @@ export default function ReportsPage() {
     window.open(`${apiBase}/reports/${reportId}/download`, "_blank");
   };
 
-  if (loading) return <LoadingState message="Loading Survey Reports..." />;
+  if (loading) return <LoadingState message="Loading Traceable Survey Report Generator..." />;
   if (error) return <ErrorState message={error} onRetry={fetchData} />;
 
   return (
@@ -86,11 +101,45 @@ export default function ReportsPage() {
       {/* Header */}
       <div className="border-b border-slate-800/80 pb-5">
         <h1 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
-          <FileText className="h-5 w-5 text-cyan-400" /> Survey Report Generator
+          <FileText className="h-5 w-5 text-cyan-400" /> Traceable Survey Report Generator
         </h1>
         <p className="text-xs text-slate-400 mt-1">
-          Export verified marine debris findings, executive summaries, and survey telemetry as PDF documents.
+          Export verified marine debris findings, AI evidence transparency sections, and scientific limitations as PDF documents.
         </p>
+      </div>
+
+      {/* AI Evidence & Scientific Limitations Info Banner */}
+      <div className="rounded-xl border border-amber-800/40 bg-amber-950/20 p-4 space-y-3">
+        <div className="flex items-center gap-2 text-xs font-semibold text-amber-300">
+          <ShieldAlert className="h-4 w-4 text-amber-400" />
+          <span>All Reports Include: "AI Evidence & Scientific Limitations" Section</span>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-[11px]">
+          <div className="p-2.5 rounded-lg bg-slate-900 border border-slate-800 space-y-1">
+            <div className="font-semibold text-slate-200 flex items-center gap-1.5">
+              <Info className="h-3 w-3 text-cyan-400" /> Algorithm Transparency
+            </div>
+            <p className="text-slate-400 leading-relaxed">
+              Every PDF includes complete formula disclosure: Priority = 0.35·Anomaly + 0.25·Confidence + 0.20·TypeWeight + 0.20·Uncertainty
+            </p>
+          </div>
+          <div className="p-2.5 rounded-lg bg-slate-900 border border-slate-800 space-y-1">
+            <div className="font-semibold text-slate-200 flex items-center gap-1.5">
+              <AlertTriangle className="h-3 w-3 text-amber-400" /> Model Limitations
+            </div>
+            <p className="text-slate-400 leading-relaxed">
+              All detections are labeled EXPERIMENTAL. No validated field-test marine debris neural weights are currently deployed.
+            </p>
+          </div>
+          <div className="p-2.5 rounded-lg bg-slate-900 border border-slate-800 space-y-1">
+            <div className="font-semibold text-slate-200 flex items-center gap-1.5">
+              <CheckCircle2 className="h-3 w-3 text-emerald-400" /> Honesty Protocol
+            </div>
+            <p className="text-slate-400 leading-relaxed">
+              Every report distinguishes CONFIRMED human-verified findings from AI SUGGESTIONS that require mandatory diver validation.
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* Generation Bar */}
@@ -166,9 +215,14 @@ export default function ReportsPage() {
             <TableBody>
               {reports.map((r) => (
                 <TableRow key={r.id}>
-                  <TableCell className="font-semibold text-slate-200 flex items-center gap-2">
-                    <FileText className="h-4 w-4 text-cyan-400 shrink-0" />
-                    {r.title}
+                  <TableCell className="font-semibold text-slate-200">
+                    <div className="flex items-center gap-2">
+                      <FileText className="h-4 w-4 text-cyan-400 shrink-0" />
+                      {r.title}
+                    </div>
+                    <div className="text-[10px] font-mono text-emerald-500 mt-0.5">
+                      ✓ Includes AI Evidence & Scientific Limitations section
+                    </div>
                   </TableCell>
                   <TableCell className="text-xs font-mono text-slate-300">
                     {r.report_type}

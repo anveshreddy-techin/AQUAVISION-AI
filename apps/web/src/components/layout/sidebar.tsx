@@ -23,6 +23,7 @@ import {
   ChevronRight,
   Waves,
   X,
+  ShieldCheck,
 } from "lucide-react";
 
 interface NavItem {
@@ -35,6 +36,7 @@ interface NavItem {
 const mainNavItems: NavItem[] = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { label: "Surveys", href: "/surveys", icon: Ship },
+  { label: "Survey QA/QC", href: "/surveys/qa", icon: ShieldCheck },
   { label: "Analysis Workspace", href: "/analysis", icon: Microscope },
   { label: "Review Queue", href: "/review", icon: ClipboardCheck },
   { label: "Anomalies", href: "/anomalies", icon: AlertTriangle },
@@ -50,6 +52,7 @@ const adminNavItems: NavItem[] = [
   { label: "User Management", href: "/admin/users", icon: Users, adminOnly: true },
   { label: "Audit Logs", href: "/admin/audit", icon: Shield, adminOnly: true },
 ];
+
 
 interface SidebarProps {
   mobileOpen?: boolean;
