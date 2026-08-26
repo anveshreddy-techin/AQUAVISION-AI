@@ -115,19 +115,28 @@ def seed():
             metrics_json=json.dumps({
                 "status": "HEURISTIC_ACTIVE",
                 "dataset": "AI4Shipwrecks (Real SSS)",
-                "note": "Detection currently uses algorithmic heuristics (contour thresholding, texture variance) applied to real, licensed AI4Shipwrecks SSS imagery. No neural network has been trained yet due to lack of field-labeled SSS marine debris datasets. Metrics unavailable pending a trained model with ground-truth evaluation.",
+                "note": "Detection currently uses algorithmic heuristics (contour thresholding, acoustic shadow evaluation) applied to real, licensed AI4Shipwrecks SSS imagery. Bounding-box debris triage runs heuristics pending a model trained on field-validated debris ground truth.",
             }),
         )
         anomaly_model = ModelVersion(
-            name="Seabed Texture Anomaly Evaluator", version="0.2.0-demo", task="ANOMALY", modality="SSS",
-            status="DEMO", inference_time_ms=30.0,
-            classes_json=json.dumps(["normal_seabed", "acoustic_anomaly"]),
-            description="Statistical local variance and Laplacian texture complexity scoring for acoustic anomaly isolation on real SSS swaths.",
+            name="SSS Acoustic Anomaly ConvAutoencoder", version="1.0.0-trained", task="ANOMALY", modality="SSS",
+            status="TRAINED", inference_time_ms=1.56,
+            classes_json=json.dumps(["normal_seabed", "acoustic_anomaly_or_wreck"]),
+            description="Deep Convolutional Autoencoder (ConvAutoencoder) trained for 15 epochs on authentic AI4Shipwrecks SSS seabed patches. Evaluated on held-out test swaths.",
             metrics_json=json.dumps({
-                "status": "HEURISTIC_ACTIVE",
-                "dataset": "AI4Shipwrecks (Real SSS)",
-                "reconstruction_baseline": "Gaussian blur residual + Laplacian variance (threshold: 0.50)",
-                "note": "Texture anomaly scoring running on real SSS swaths without trained neural autoencoder weights.",
+                "status": "TRAINED",
+                "architecture": "ConvAutoencoder(1->32->64->128->32->128->64->32->1)",
+                "dataset": "AI4Shipwrecks (University of Michigan, DOI: 10.7302/dmf4-x492)",
+                "epochs": 15,
+                "auroc": 0.9752,
+                "f1_score": 0.9544,
+                "precision": 0.9886,
+                "recall": 0.9224,
+                "optimal_threshold": 0.004244,
+                "mean_normal_loss": 0.001474,
+                "mean_anomaly_loss": 0.015895,
+                "inference_latency_ms": 1.56,
+                "checkpoint": "ml/checkpoints/ai4shipwrecks_anomaly_autoencoder.pt",
             }),
         )
         db.add_all([demo_model, anomaly_model])

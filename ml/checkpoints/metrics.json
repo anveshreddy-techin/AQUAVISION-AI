@@ -1,0 +1,132 @@
+{
+  "model_name": "SSS Acoustic Anomaly Autoencoder (AI4Shipwrecks)",
+  "version": "1.0.0-real-trained",
+  "task": "ANOMALY",
+  "modality": "SSS",
+  "status": "TRAINED",
+  "training_dataset": "AI4Shipwrecks (University of Michigan, DOI: 10.7302/dmf4-x492)",
+  "target_classes": [
+    "normal_seabed",
+    "acoustic_anomaly_or_wreck"
+  ],
+  "epochs_trained": 15,
+  "training_time_sec": 87.63,
+  "auroc": 0.9752,
+  "f1_score": 0.9544,
+  "precision": 0.9886,
+  "recall": 0.9224,
+  "optimal_reconstruction_threshold": 0.004244,
+  "mean_normal_reconstruction_loss": 0.001474,
+  "mean_anomaly_reconstruction_loss": 0.015895,
+  "inference_latency_patch_ms": 1.56,
+  "inference_latency_tile_512_ms": 99.7,
+  "checkpoint_file": "ml/checkpoints/ai4shipwrecks_anomaly_autoencoder.pt",
+  "scientific_honesty_declaration": "Model successfully trained directly on authentic AI4Shipwrecks SSS imagery. Labels reflect shipwreck and structural seabed anomalies rather than marine debris ground-truth.",
+  "epoch_logs": [
+    {
+      "epoch": 1,
+      "train_loss": 0.09817,
+      "val_normal_loss": 0.03946,
+      "val_anomaly_loss": 0.15397,
+      "time_sec": 6.99
+    },
+    {
+      "epoch": 2,
+      "train_loss": 0.02751,
+      "val_normal_loss": 0.01489,
+      "val_anomaly_loss": 0.1489,
+      "time_sec": 5.9
+    },
+    {
+      "epoch": 3,
+      "train_loss": 0.01624,
+      "val_normal_loss": 0.01362,
+      "val_anomaly_loss": 0.06562,
+      "time_sec": 5.84
+    },
+    {
+      "epoch": 4,
+      "train_loss": 0.0127,
+      "val_normal_loss": 0.00956,
+      "val_anomaly_loss": 0.07002,
+      "time_sec": 5.55
+    },
+    {
+      "epoch": 5,
+      "train_loss": 0.01154,
+      "val_normal_loss": 0.00843,
+      "val_anomaly_loss": 0.04729,
+      "time_sec": 5.75
+    },
+    {
+      "epoch": 6,
+      "train_loss": 0.0109,
+      "val_normal_loss": 0.01051,
+      "val_anomaly_loss": 0.0447,
+      "time_sec": 5.58
+    },
+    {
+      "epoch": 7,
+      "train_loss": 0.01021,
+      "val_normal_loss": 0.00894,
+      "val_anomaly_loss": 0.0465,
+      "time_sec": 5.49
+    },
+    {
+      "epoch": 8,
+      "train_loss": 0.00883,
+      "val_normal_loss": 0.00699,
+      "val_anomaly_loss": 0.04843,
+      "time_sec": 6.05
+    },
+    {
+      "epoch": 9,
+      "train_loss": 0.00858,
+      "val_normal_loss": 0.00662,
+      "val_anomaly_loss": 0.03989,
+      "time_sec": 5.57
+    },
+    {
+      "epoch": 10,
+      "train_loss": 0.00934,
+      "val_normal_loss": 0.00951,
+      "val_anomaly_loss": 0.0417,
+      "time_sec": 5.78
+    },
+    {
+      "epoch": 11,
+      "train_loss": 0.00879,
+      "val_normal_loss": 0.00784,
+      "val_anomaly_loss": 0.05349,
+      "time_sec": 5.79
+    },
+    {
+      "epoch": 12,
+      "train_loss": 0.00894,
+      "val_normal_loss": 0.00598,
+      "val_anomaly_loss": 0.03954,
+      "time_sec": 6.05
+    },
+    {
+      "epoch": 13,
+      "train_loss": 0.0087,
+      "val_normal_loss": 0.00886,
+      "val_anomaly_loss": 0.03846,
+      "time_sec": 5.83
+    },
+    {
+      "epoch": 14,
+      "train_loss": 0.00897,
+      "val_normal_loss": 0.01175,
+      "val_anomaly_loss": 0.03863,
+      "time_sec": 5.69
+    },
+    {
+      "epoch": 15,
+      "train_loss": 0.00835,
+      "val_normal_loss": 0.00645,
+      "val_anomaly_loss": 0.03609,
+      "time_sec": 5.77
+    }
+  ]
+}
