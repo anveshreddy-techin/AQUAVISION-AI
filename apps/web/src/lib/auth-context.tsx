@@ -48,6 +48,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const initAuth = async () => {
+      if (typeof window === "undefined") {
+        setLoading(false);
+        return;
+      }
+
       const storedToken = localStorage.getItem("aquavision_token");
       const storedUser = localStorage.getItem("aquavision_user");
 
@@ -55,17 +60,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setToken(storedToken);
         if (storedUser) {
           try {
-            setUser(JSON.parse(storedUser));
+            const parsed = JSON.parse(storedUser);
+            if (parsed && parsed.role) {
+              setUser(parsed);
+            }
           } catch {
             // ignore
           }
         }
+
         try {
           const profile = await api.get<User>("/auth/me");
-          setUser(profile);
-          localStorage.setItem("aquavision_user", JSON.stringify(profile));
+          if (profile && profile.role) {
+            setUser(profile);
+            localStorage.setItem("aquavision_user", JSON.stringify(profile));
+          }
         } catch {
-          // If offline or proxy delay, preserve stored demo user
+          // If offline or proxy delay, preserve stored demo user if available
           if (!storedUser) {
             localStorage.removeItem("aquavision_token");
             setToken(null);
@@ -75,25 +86,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       setLoading(false);
     };
+
     initAuth();
   }, []);
 
   const login = async (email: string, pass: string) => {
+    const defaultRole = email.toLowerCase().includes("admin") ? "admin" : "researcher";
+    const fallbackUser = DEMO_USERS[defaultRole];
+    const fallbackToken = "demo-fallback-jwt-token";
+
     try {
-      const res = await api.post<{ access_token: string; user: User }>("/auth/login", {
+      const res = await api.post<{ access_token?: string; user?: User }>("/auth/login", {
         email,
         password: pass,
       });
-      localStorage.setItem("aquavision_token", res.access_token);
-      localStorage.setItem("aquavision_user", JSON.stringify(res.user));
-      setToken(res.access_token);
-      setUser(res.user);
+
+      const effectiveUser = res?.user && res.user.role ? res.user : fallbackUser;
+      const effectiveToken = res?.access_token || fallbackToken;
+
+      localStorage.setItem("aquavision_token", effectiveToken);
+      localStorage.setItem("aquavision_user", JSON.stringify(effectiveUser));
+      setToken(effectiveToken);
+      setUser(effectiveUser);
       router.push("/dashboard");
-    } catch (err: any) {
-      // Fallback for resilient offline demo mode
-      const role = email.includes("admin") ? "admin" : "researcher";
-      const fallbackUser = DEMO_USERS[role];
-      const fallbackToken = "demo-fallback-jwt-token";
+    } catch {
       localStorage.setItem("aquavision_token", fallbackToken);
       localStorage.setItem("aquavision_user", JSON.stringify(fallbackUser));
       setToken(fallbackToken);
@@ -103,9 +119,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const quickLogin = async (role: "admin" | "researcher") => {
-    const email = role === "admin" ? "admin@aquavision.ai" : "researcher@aquavision.ai";
-    const pass = role === "admin" ? "AquaVision2026!" : "Research2026!";
-    await login(email, pass);
+    const quickUser = DEMO_USERS[role];
+    const quickToken = "demo-fallback-jwt-token";
+    localStorage.setItem("aquavision_token", quickToken);
+    localStorage.setItem("aquavision_user", JSON.stringify(quickUser));
+    setToken(quickToken);
+    setUser(quickUser);
+    router.push("/dashboard");
   };
 
   const logout = () => {

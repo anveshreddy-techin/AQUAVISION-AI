@@ -39,7 +39,7 @@ export default function ReportsPage() {
         api.get<Report[]>("/reports"),
         api.get<{ surveys: Survey[]; total: number }>("/surveys"),
       ]);
-      setReports(reportList || []);
+      setReports(Array.isArray(reportList) ? reportList : []);
       setSurveys(surveyList.surveys || []);
       if (surveyList.surveys?.length > 0 && !selectedSurveyId) {
         setSelectedSurveyId(surveyList.surveys[0].id);

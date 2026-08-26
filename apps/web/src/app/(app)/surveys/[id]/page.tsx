@@ -53,8 +53,8 @@ export default function SurveyDetailPage() {
         api.get<ProcessingJob[]>(`/processing/jobs?survey_id=${surveyId}`),
       ]);
       setSurvey(surveyData);
-      setCandidates(candidateData.candidates || []);
-      setJobs(jobData || []);
+      setCandidates(Array.isArray(candidateData?.candidates) ? candidateData.candidates : []);
+      setJobs(Array.isArray(jobData) ? jobData : []);
     } catch (err: any) {
       setError(err.message || "Failed to load survey details");
     } finally {
