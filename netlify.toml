@@ -1,0 +1,12 @@
+# Netlify configuration for AquaVision AI Next.js frontend
+
+[build]
+  base = "apps/web"
+  command = "npm run build"
+  publish = ".next"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+[build.environment]
+  NODE_VERSION = "20"
