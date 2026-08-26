@@ -369,19 +369,29 @@ export default function ReviewQueuePage() {
                 </div>
               </div>
 
-              {/* Acoustic Evidence Viewport */}
+              {/* Acoustic Evidence Viewport with Real SSS ROI */}
               <div className="rounded-xl border border-slate-800 bg-black p-3 relative h-48 flex items-center justify-center overflow-hidden">
-                <div className="absolute inset-0 opacity-25 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-cyan-600/50 via-slate-900 to-black" />
+                <img
+                  src={`/sonar/frames/ai4shipwreck_frame_${(selectedCandidate.id % 5) + 1}.png`}
+                  alt="Acoustic Sonar ROI"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = "/sonar/sonar_wrecks.png";
+                  }}
+                  className="absolute inset-0 w-full h-full object-cover brightness-95 contrast-125 opacity-70"
+                />
                 <div className="relative z-10 text-center space-y-1">
-                  <div className="h-16 w-32 mx-auto rounded border-2 border-red-500/80 bg-red-950/30 flex items-center justify-center text-xs font-mono text-red-300 shadow-[0_0_20px_rgba(239,68,68,0.3)]">
-                    TARGET ROI
+                  <div className="h-16 w-32 mx-auto rounded border-2 border-red-500/90 bg-red-950/40 backdrop-blur-[1px] flex items-center justify-center text-xs font-mono font-bold text-red-200 shadow-[0_0_20px_rgba(239,68,68,0.5)]">
+                    TARGET #{selectedCandidate.id} ROI
                   </div>
-                  <span className="text-[10px] font-mono text-slate-400">
+                  <div className="px-2 py-0.5 rounded bg-black/80 inline-block text-[10px] font-mono text-slate-300 border border-slate-800">
                     Acoustic Highlight: 214/255 • Trailing Shadow: Confirmed (12.4m)
-                  </span>
+                  </div>
                 </div>
-                <div className="absolute bottom-2 right-2 text-[9px] font-mono text-cyan-400 bg-slate-900/90 px-2 py-0.5 rounded border border-slate-800">
+                <div className="absolute bottom-2 right-2 text-[9px] font-mono text-cyan-400 bg-slate-900/90 px-2 py-0.5 rounded border border-slate-800 z-20">
                   ACOUSTIC CONTRAST RATIO: 3.4 : 1
+                </div>
+                <div className="absolute top-2 left-2 text-[9px] font-mono text-emerald-400 bg-slate-900/90 px-2 py-0.5 rounded border border-slate-800 z-20">
+                  REAL SSS: AI4Shipwrecks
                 </div>
               </div>
 

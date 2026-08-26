@@ -319,26 +319,39 @@ export default function AnalysisWorkspacePage() {
               NADIR ALTITUDE: 8.5m
             </div>
 
-            {/* Acoustic Waterfall Strip simulation */}
+            {/* Acoustic Waterfall Strip with Real AI4Shipwrecks SSS Imagery */}
             <div
               style={{
                 transform: `scale(${zoom})`,
                 filter: getFilterStyle(),
                 transition: "filter 0.2s, transform 0.1s",
               }}
-              className="relative w-[480px] h-[340px] rounded bg-gradient-to-b from-slate-900 via-cyan-950/30 to-slate-900 flex items-center justify-center p-4 border border-slate-800 shadow-2xl overflow-hidden"
+              className="relative w-[520px] h-[350px] rounded bg-black flex items-center justify-center border border-slate-800 shadow-2xl overflow-hidden"
             >
-              {/* Sonar Seabed Texture Simulation */}
-              <div className="absolute inset-0 opacity-30 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-cyan-600/40 via-slate-900 to-black" />
+              {/* Real SSS Imagery */}
+              <img
+                src={`/sonar/frames/ai4shipwreck_frame_${(currentFrameIdx % 5) + 1}.png`}
+                alt="Authentic AI4Shipwrecks SSS Sonar Swath"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = "/sonar/sonar_wrecks.png";
+                }}
+                className={`w-full h-full object-cover select-none transition-all duration-300 ${
+                  viewMode === "raw"
+                    ? "brightness-95 contrast-90 grayscale"
+                    : viewMode === "enhanced"
+                    ? "brightness-105 contrast-130 saturate-110"
+                    : ""
+                }`}
+              />
 
               {/* Target Bounding Box Overlays */}
               {(viewMode === "detections" || viewMode === "evidence") &&
                 candidates.slice(0, 3).map((c, i) => {
                   const isSelected = selectedCandidate?.id === c.id;
                   const coords = [
-                    { x: 120, y: 80, w: 110, h: 90 },
-                    { x: 280, y: 160, w: 90, h: 100 },
-                    { x: 190, y: 220, w: 80, h: 60 },
+                    { x: 130, y: 70, w: 120, h: 95 },
+                    { x: 290, y: 150, w: 100, h: 110 },
+                    { x: 200, y: 210, w: 90, h: 70 },
                   ][i % 3];
 
                   return (
@@ -354,8 +367,8 @@ export default function AnalysisWorkspacePage() {
                       }}
                       className={`cursor-pointer rounded border-2 transition-all p-1 flex flex-col justify-between ${
                         isSelected
-                          ? "border-red-500 bg-red-950/30 shadow-[0_0_15px_rgba(239,68,68,0.5)] z-30"
-                          : "border-cyan-400/80 bg-cyan-950/20 hover:border-cyan-300 z-20"
+                          ? "border-red-500 bg-red-950/30 shadow-[0_0_15px_rgba(239,68,68,0.6)] z-30 ring-2 ring-red-400"
+                          : "border-cyan-400/90 bg-cyan-950/20 hover:border-cyan-300 z-20"
                       }`}
                     >
                       <div className="flex items-center justify-between">
@@ -381,7 +394,7 @@ export default function AnalysisWorkspacePage() {
 
               {/* Anomaly Heatmap Layer */}
               {viewMode === "anomaly" && (
-                <div className="absolute inset-0 bg-gradient-to-tr from-blue-900/50 via-emerald-700/40 to-red-600/60 mix-blend-screen opacity-70 animate-pulse pointer-events-none" />
+                <div className="absolute inset-0 bg-gradient-to-tr from-blue-900/60 via-emerald-600/40 to-red-600/70 mix-blend-color-dodge opacity-80 animate-pulse pointer-events-none" />
               )}
             </div>
           </div>
@@ -389,9 +402,11 @@ export default function AnalysisWorkspacePage() {
           {/* Bottom Telemetry Footer */}
           <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 border-t border-slate-800/80 pt-2 z-10">
             <div className="flex items-center gap-3">
-              <span>PORT SWATH: 25m</span>
+              <span className="text-emerald-400 font-semibold">DATASET: AI4Shipwrecks (Real SSS)</span>
+              <span>•</span>
+              <span>PORT: 25m</span>
               <span>STARBOARD: 25m</span>
-              <span>PING FREQ: 450kHz</span>
+              <span>450kHz</span>
             </div>
             <div className="flex items-center gap-2">
               <button

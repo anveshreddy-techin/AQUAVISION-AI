@@ -78,7 +78,7 @@ export default function MapPage() {
           <div className="relative z-10 flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2 rounded-lg bg-slate-900/90 border border-slate-800 px-3 py-1.5 text-xs font-mono text-slate-300">
               <Navigation className="h-3.5 w-3.5 text-cyan-400 transform -rotate-45" />
-              LAT: 13.0827° N • LON: 80.2707° E (Chennai Harbor Approach)
+              LAT: 9.1500° N • LON: 79.1500° E (Gulf of Mannar Marine Corridor — Off Tuticorin/Rameswaram)
             </div>
             <div className="flex items-center gap-3 bg-slate-900/80 border border-slate-800 px-2.5 py-1 rounded-lg">
               <span className="flex items-center gap-1 text-[10px] font-mono text-red-400">

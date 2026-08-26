@@ -71,10 +71,10 @@ export default function AIModelsPage() {
       <div className="rounded-xl border border-cyan-800/40 bg-cyan-950/20 p-4 space-y-2">
         <div className="flex items-center gap-2 text-xs font-semibold text-cyan-300">
           <ShieldAlert className="h-4 w-4 text-cyan-400" />
-          <span>Scientific Integrity Notice (Honesty Contract Section 96.26)</span>
+          <span>Scientific Integrity Notice (Section 96.26 Honesty Contract)</span>
         </div>
         <p className="text-xs text-slate-300 leading-relaxed">
-          Models labeled <span className="text-amber-400 font-bold">DEMO</span> utilize algorithmic heuristics (adaptive contour thresholding and texture variance) to demonstrate pipeline execution without fabricating trained neural weights. Models labeled <span className="text-rose-400 font-bold">BLOCKED</span> require legitimate, field-labeled SSS marine debris datasets prior to operational deployment.
+          Detection currently uses <span className="text-cyan-300 font-semibold">algorithmic heuristics</span> (adaptive contour thresholding, acoustic shadow-contrast evaluation, Laplacian texture variance) applied to <span className="text-emerald-400 font-semibold">real, licensed AI4Shipwrecks SSS imagery</span> (University of Michigan, DOI: 10.7302/dmf4-x492). No neural network has been trained yet due to the absence of public field-labeled SSS marine debris ground-truth (shipwreck labels are preserved authentically without fabricating debris classes). Metrics remain honestly reported as <span className="text-amber-400 font-bold">unavailable</span> pending a model trained on validated debris targets.
         </p>
       </div>
 

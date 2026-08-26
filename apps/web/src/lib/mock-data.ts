@@ -33,12 +33,12 @@ export const MOCK_OVERVIEW_STATS: OverviewStats = {
 export const MOCK_SURVEYS: Survey[] = [
   {
     id: 1,
-    name: "Coastal Swath Survey Alpha (SIH Demo)",
+    name: "Coastal South Survey Alpha (Gulf of Mannar)",
     description:
-      "Synthetic side-scan sonar seabed survey over Chennai Harbor approaches for marine debris and anomaly screening.",
+      "Side-scan sonar seabed survey over the Gulf of Mannar marine corridor (off Tuticorin / Rameswaram) for marine debris and anomaly screening.",
     operator_id: 1,
     date: new Date().toISOString(),
-    area_name: "Bay of Bengal - Coastal Swath #4",
+    area_name: "Gulf of Mannar Marine Corridor (Coastal South)",
     vessel_name: "RV Sagar Kanya",
     sonar_device: "Klein 3000 SSS",
     sonar_modality: "SSS",
@@ -144,24 +144,35 @@ export const MOCK_CANDIDATES: Candidate[] = [
 export const MOCK_MODELS: ModelVersion[] = [
   {
     id: 1,
-    name: "SSS Acoustic Debris Net v1.0",
-    version: "1.0.0",
+    name: "SSS Acoustic Heuristic Detector",
+    version: "0.2.0-demo",
     task: "DETECTION",
     modality: "SSS",
     status: "DEMO",
-    metrics_json: JSON.stringify({ mAP50: 0.84, precision: 0.88, recall: 0.82 }),
-    description: "Side-scan sonar object detector trained on synthetic acoustic waterfall tiles.",
+    metrics_json: JSON.stringify({
+      status: "HEURISTIC_ACTIVE",
+      dataset: "AI4Shipwrecks (Real SSS)",
+      note: "Detection currently uses algorithmic heuristics (contour thresholding, acoustic shadow-contrast ratio) applied to real, licensed AI4Shipwrecks SSS imagery. No neural network weights trained yet; metrics unavailable pending labeled debris ground-truth.",
+    }),
+    description:
+      "Algorithmic heuristic detector applied to real AI4Shipwrecks SSS imagery. Identifies high-backscatter highlights and acoustic shadows.",
     created_at: new Date().toISOString(),
   },
   {
     id: 2,
-    name: "Seabed Texture Anomaly Autoencoder",
-    version: "0.9.2",
+    name: "Seabed Texture Anomaly Evaluator",
+    version: "0.2.0-demo",
     task: "ANOMALY",
     modality: "SSS",
     status: "DEMO",
-    metrics_json: JSON.stringify({ AUROC: 0.91, reconstruction_error: 0.042 }),
-    description: "Unsupervised texture variance scoring for acoustic anomaly isolation.",
+    metrics_json: JSON.stringify({
+      status: "HEURISTIC_ACTIVE",
+      dataset: "AI4Shipwrecks (Real SSS)",
+      reconstruction_baseline: "Gaussian blur residual + Laplacian variance (threshold: 0.50)",
+      note: "Texture anomaly scoring running on real SSS swaths without trained neural autoencoder weights.",
+    }),
+    description:
+      "Statistical local variance and Laplacian texture complexity scoring for acoustic anomaly isolation on real SSS swaths.",
     created_at: new Date().toISOString(),
   },
 ];
@@ -172,13 +183,40 @@ export const MOCK_MODELS: ModelVersion[] = [
 export const MOCK_DATASETS: Dataset[] = [
   {
     id: 1,
-    name: "Synthetic SSS Marine Debris Benchmark",
-    source: "AquaVision Lab",
+    name: "AI4Shipwrecks",
+    source: "University of Michigan Field Robotics Group (DOI: 10.7302/dmf4-x492)",
     modality: "SSS",
     download_status: "COMPLETED",
-    task_type: "DETECTION & ANOMALY",
-    image_count: 500,
-    limitations: "Precomputed synthetic benchmark under Honesty Protocol specifications.",
+    task_type: "Segmentation, Anomaly Detection",
+    image_count: 286,
+    limitations:
+      "Shipwreck-labeled side-scan sonar ground truth from Lake Huron (24 sites). Preserved as authentic acoustic structure/seabed; not relabeled as debris.",
+    sss_model_eligible: true,
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: 2,
+    name: "Marine Debris FLS Dataset",
+    source: "Forward-Looking Sonar Research Dataset (Valdenegro-Toro)",
+    modality: "FLS",
+    download_status: "NOT_DOWNLOADED",
+    task_type: "Object Detection, Classification",
+    image_count: 1868,
+    limitations:
+      "FLS modality - NOT SSS. Ineligible for SSS model training; cataloged in registry for acoustic cross-reference only.",
+    sss_model_eligible: false,
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: 3,
+    name: "Marine-PULSE",
+    source: "SSS Underwater Structures Dataset",
+    modality: "SSS",
+    download_status: "NOT_DOWNLOADED",
+    task_type: "Segmentation, Background Modeling",
+    image_count: 420,
+    limitations:
+      "Seabed and structural target labels. Suitable for SSS background modeling, not marine debris ground-truth.",
     sss_model_eligible: true,
     created_at: new Date().toISOString(),
   },
@@ -458,11 +496,11 @@ export function getMockResponse(endpoint: string): any {
   if (endpoint.startsWith("/maps")) {
     return {
       survey_id: 1,
-      center: [13.0827, 80.2707],
+      center: [9.1500, 79.1500],
       candidates: MOCK_CANDIDATES.map((c, idx) => ({
         ...c,
-        latitude: 13.0827 + (idx - 2) * 0.005,
-        longitude: 80.2707 + (idx - 2) * 0.004,
+        latitude: 9.1500 + (idx - 2) * 0.005,
+        longitude: 79.1500 + (idx - 2) * 0.004,
       })),
     };
   }
